@@ -13,6 +13,8 @@ final class NetworkManager {
     
     private init() {}
     
+    
+    
     // MARK: - The Basic URLSession Network Call
 //    func getResponse<T: Codable>(url: String, responseClass: T.Type, completion: @escaping (Result<T, AppetizerError>) -> Void) {
 //        guard let url = URL(string: url) else {
