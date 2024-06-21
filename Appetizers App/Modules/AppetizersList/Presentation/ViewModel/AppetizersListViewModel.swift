@@ -7,6 +7,7 @@
 
 import Foundation
 
+//test
 @MainActor final class AppetizersListViewModel: AppetizersListViewModelProtocol {
     // MARK: - Properties
     private let useCase: GetAppetizersListUseCaseProtocol
