@@ -6,7 +6,8 @@
 //
 
 import Foundation
+import Combine
 
 protocol AppetizersListServiceProtocol {
-    func getAppetizers() async throws -> AppetizersResponse
+    func getAppetizers() -> AnyPublisher<AppetizersResponse, AppetizerError>
 }

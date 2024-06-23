@@ -6,7 +6,8 @@
 //
 
 import Foundation
+import Combine
 
 protocol GetAppetizersListUseCaseProtocol {
-    func execute() async throws -> AppetizersResponse
+    func execute() -> AnyPublisher<AppetizersResponse, AppetizerError>
 }

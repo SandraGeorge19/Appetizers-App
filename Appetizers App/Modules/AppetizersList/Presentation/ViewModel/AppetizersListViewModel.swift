@@ -6,8 +6,8 @@
 //
 
 import Foundation
+import Combine
 
-//test
 @MainActor final class AppetizersListViewModel: AppetizersListViewModelProtocol {
     // MARK: - Properties
     private let useCase: GetAppetizersListUseCaseProtocol
@@ -17,6 +17,8 @@ import Foundation
     @Published var isShowingDetails = false
     @Published var selectedAppetizer: AppetizerModel?
     
+    private var cancellables = Set<AnyCancellable>()
+    
     // MARK: - Initializer(s)
     init(useCase: GetAppetizersListUseCaseProtocol = GetAppetizersListUseCase()) {
         self.useCase = useCase
@@ -25,19 +27,19 @@ import Foundation
     // MARK: - Method(s)
     func getAppetizers() {
         isLoading = true
-        Task {
-            do {
-                appetizersList = try await useCase.execute().request
-                isLoading = false
-            } catch {
-                if let error = error as? AppetizerError {
-                    handleError(error: error)
-                } else {
-                    alertItem = AlertContext.invalidResponse
+        useCase.execute()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] completion in
+                guard let self = self else { return }
+                self.isLoading = false
+                if case let .failure(error) = completion {
+                    self.handleError(error: error)
                 }
-                isLoading = false
-            }
-        }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                self.isLoading = false
+                appetizersList = response.request
+            }.store(in: &cancellables)
     }
 //    func getAppetizers() {
 //        isLoading = true

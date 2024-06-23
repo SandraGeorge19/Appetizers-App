@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final class GetAppetizersListUseCase: GetAppetizersListUseCaseProtocol {
     // MARK: - Properties
@@ -17,7 +18,7 @@ final class GetAppetizersListUseCase: GetAppetizersListUseCaseProtocol {
     }
     
     // MARK: - Method(s)
-    func execute() async throws -> AppetizersResponse {
-        return try await repo.getAppetizers()
+    func execute() -> AnyPublisher<AppetizersResponse, AppetizerError> {
+        return repo.getAppetizers()
     }
 }

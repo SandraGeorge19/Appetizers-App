@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final class AppetizersListService: AppetizersListServiceProtocol {
     // MARK: - Properties
@@ -17,8 +18,8 @@ final class AppetizersListService: AppetizersListServiceProtocol {
     }
     
     // MARK: - Method(s)
-    func getAppetizers() async throws -> AppetizersResponse {
+    func getAppetizers() -> AnyPublisher<AppetizersResponse, AppetizerError> {
         let url = Constants.baseUrl + Constants.appetizerEndPoint
-        return try await service.getResponse(url: url,responseClass: AppetizersResponse.self)
+        return service.getResponse(url: url,responseClass: AppetizersResponse.self)
     }
 }

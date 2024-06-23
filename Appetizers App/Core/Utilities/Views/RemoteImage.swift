@@ -11,15 +11,15 @@ final class ImageLoader: ObservableObject {
     
     @Published var image: Image? = nil
     
-    func load(fromURLString urlString: String) {
-        NetworkManager.shared.downloadImage(fromURLString: urlString) {[weak self] uiImage in
-            guard let self else { return }
-            guard let uiImage else { return}
-            DispatchQueue.main.async {
-                self.image = Image(uiImage: uiImage)
-            }
-        }
-    }
+//    func load(fromURLString urlString: String) {
+//        NetworkManager.shared.downloadImage(fromURLString: urlString) {[weak self] uiImage in
+//            guard let self else { return }
+//            guard let uiImage else { return}
+//            DispatchQueue.main.async {
+//                self.image = Image(uiImage: uiImage)
+//            }
+//        }
+//    }
 }
 
 struct RemoteImage: View {
@@ -36,7 +36,7 @@ struct AppetizerRemoteImage: View {
     var body: some View {
         RemoteImage(image: imageLoader.image)
             .onAppear {
-                imageLoader.load(fromURLString: urlString)
+//                imageLoader.load(fromURLString: urlString)
             }
     }
 }

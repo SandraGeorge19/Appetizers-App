@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 final class AppetizersListRepository: AppetizersListRepositoryProtocol {
     // MARK: - Properties
@@ -17,7 +18,7 @@ final class AppetizersListRepository: AppetizersListRepositoryProtocol {
     }
     
     // MARK: - Method(s)
-    func getAppetizers() async throws -> AppetizersResponse {
-        return try await service.getAppetizers()
+    func getAppetizers() -> AnyPublisher<AppetizersResponse, AppetizerError> {
+        return service.getAppetizers()
     }
 }
