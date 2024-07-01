@@ -5,7 +5,8 @@
 //  Created by Brandon Withrow on 2/4/19.
 //
 
-#if canImport(UIKit)
+import Foundation
+#if os(iOS) || os(tvOS) || os(watchOS) || targetEnvironment(macCatalyst)
 import UIKit
 
 extension UIColor {

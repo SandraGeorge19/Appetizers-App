@@ -1,6 +1,8 @@
 // Created by Cal Stephens on 8/14/23.
 // Copyright © 2023 Airbnb Inc. All rights reserved.
 
+import Foundation
+
 // MARK: - LayerEffectType
 
 /// https://lottiefiles.github.io/lottie-docs/schema/#/$defs/effects
@@ -79,7 +81,7 @@ class LayerEffect: Codable, DictionaryInitializable {
   }
 }
 
-extension [LayerEffect] {
+extension Array where Element == LayerEffect {
   static func fromDictionaries(_ dictionaries: [[String: Any]]) throws -> [LayerEffect] {
     try dictionaries.compactMap { dictionary in
       let shapeType = dictionary[LayerEffect.CodingKeys.type.rawValue] as? Int
@@ -98,5 +100,4 @@ extension [LayerEffect] {
 
 /// Since `LayerEffect` isn't `final`, we have to use `@unchecked Sendable` instead of `Sendable.`
 /// All `LayerEffect` subclasses are immutable `Sendable` values.
-// swiftlint:disable:next no_unchecked_sendable
 extension LayerEffect: @unchecked Sendable { }

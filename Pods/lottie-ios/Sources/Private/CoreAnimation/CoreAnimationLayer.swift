@@ -1,6 +1,7 @@
 // Created by Cal Stephens on 12/13/21.
 // Copyright © 2021 Airbnb Inc. All rights reserved.
 
+import Foundation
 import QuartzCore
 
 // MARK: - CoreAnimationLayer
@@ -160,7 +161,7 @@ final class CoreAnimationLayer: BaseAnimationLayer {
     //    allocate a very large amount of memory (400mb+).
     //  - Alternatively this layer could subclass `CATransformLayer`,
     //    but this causes Core Animation to emit unnecessary logs.
-    if var pendingAnimationConfiguration {
+    if var pendingAnimationConfiguration = pendingAnimationConfiguration {
       pendingAnimationConfigurationModification?(&pendingAnimationConfiguration.animationConfiguration)
       pendingAnimationConfigurationModification = nil
       self.pendingAnimationConfiguration = nil
@@ -208,7 +209,6 @@ final class CoreAnimationLayer: BaseAnimationLayer {
   private let valueProviderStore: ValueProviderStore
   private let compatibilityTracker: CompatibilityTracker
   private let logger: LottieLogger
-  private let loggingState = LoggingState()
 
   /// The current playback state of the animation that is displayed in this layer
   private var currentPlaybackState: PlaybackState? {
@@ -248,8 +248,6 @@ final class CoreAnimationLayer: BaseAnimationLayer {
     try setupLayerHierarchy(
       for: animation.layers,
       context: layerContext)
-
-    try validateReasonableNumberOfTimeRemappingLayers()
   }
 
   /// Immediately builds and begins playing `CAAnimation`s for each sublayer
@@ -267,7 +265,6 @@ final class CoreAnimationLayer: BaseAnimationLayer {
       valueProviderStore: valueProviderStore,
       compatibilityTracker: compatibilityTracker,
       logger: logger,
-      loggingState: loggingState,
       currentKeypath: AnimationKeypath(keys: []),
       textProvider: textProvider,
       recordHierarchyKeypath: configuration.recordHierarchyKeypath)
@@ -388,10 +385,7 @@ extension CoreAnimationLayer: RootAnimationLayer {
       let requiredAnimationConfiguration = AnimationConfiguration(
         animationContext: AnimationContext(
           playFrom: animation.startFrame,
-          // Normal animation playback (like when looping) skips the last frame.
-          // However when the animation is paused, we need to be able to render the final frame.
-          // To allow this we have to extend the length of the animation by one frame.
-          playTo: animation.endFrame + 1,
+          playTo: animation.endFrame,
           closure: nil),
         timingConfiguration: CAMediaTimingConfiguration(speed: 0))
 
@@ -455,9 +449,7 @@ extension CoreAnimationLayer: RootAnimationLayer {
   }
 
   func forceDisplayUpdate() {
-    // Unimplemented
-    //  - We can't call `display()` here, because it would cause unexpected frame animations:
-    //    https://github.com/airbnb/lottie-ios/issues/2193
+    display()
   }
 
   func logHierarchyKeypaths() {
@@ -533,33 +525,6 @@ extension CoreAnimationLayer: RootAnimationLayer {
     }
   }
 
-  /// Time remapping in the Core Animation rendering engine requires manually interpolating
-  /// every frame of every animation. For very large animations with a huge number of layers,
-  /// this can be prohibitively expensive.
-  func validateReasonableNumberOfTimeRemappingLayers() throws {
-    let numberOfLayersWithTimeRemapping = numberOfLayersWithTimeRemapping
-    let numberOfFrames = Int(animation.framerate * animation.duration)
-    let totalCost = numberOfLayersWithTimeRemapping * numberOfFrames
-
-    /// Cap the cost / complexity of animations that use Core Animation time remapping.
-    ///  - Short, simple animations perform well, but long and complex animations perform poorly.
-    ///  - We count the total number of frames that will need to be manually interpolated, which is
-    ///    the number of layers with time remapping enabled times the total number of frames.
-    ///  - The cap is arbitrary, and is currently:
-    ///      - 1000 layers for a one second animation at 60fp
-    ///      - 500 layers for a two second animation at 60fps, etc
-    ///  - All of the sample animations in the lottie-ios repo below this cap perform well.
-    ///    If users report animations below this cap that perform poorly, we can lower the cap.
-    let maximumAllowedCost = 1000 * 60
-
-    try layerContext.compatibilityAssert(
-      totalCost < maximumAllowedCost,
-      """
-      This animation has a very large number of layers with time remapping (\(numberOfLayersWithTimeRemapping) \
-      layers over \(numberOfFrames) frames) so will perform poorly with the Core Animation rendering engine.
-      """)
-  }
-
 }
 
 // MARK: - CALayer + allSublayers
@@ -576,24 +541,5 @@ extension CALayer {
     }
 
     return allSublayers
-  }
-
-  /// The number of layers in this layer hierarchy that have a time remapping applied
-  @nonobjc
-  var numberOfLayersWithTimeRemapping: Int {
-    var numberOfSublayersWithTimeRemapping = 0
-
-    for sublayer in sublayers ?? [] {
-      if 
-        let preCompLayer = sublayer as? PreCompLayer,
-        preCompLayer.preCompLayer.timeRemapping != nil
-      {
-        numberOfSublayersWithTimeRemapping += preCompLayer.allSublayers.count
-      } else {
-        numberOfSublayersWithTimeRemapping += sublayer.numberOfLayersWithTimeRemapping
-      }
-    }
-
-    return numberOfSublayersWithTimeRemapping
   }
 }

@@ -5,6 +5,8 @@
 //  Created by Duolingo on 10/31/22.
 //
 
+import Foundation
+
 // MARK: - RoundedCorners
 
 final class RoundedCorners: ShapeItem {

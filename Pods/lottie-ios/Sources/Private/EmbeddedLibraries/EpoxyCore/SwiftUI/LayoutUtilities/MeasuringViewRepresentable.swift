@@ -1,7 +1,6 @@
 // Created by eric_horacek on 6/22/22.
 // Copyright © 2022 Airbnb Inc. All rights reserved.
 
-#if canImport(SwiftUI)
 import SwiftUI
 
 // MARK: - MeasuringViewRepresentable
@@ -13,6 +12,7 @@ import SwiftUI
 /// `sizeThatFits(…)` method.
 ///
 /// - SeeAlso: ``SwiftUIMeasurementContainer``
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 protocol MeasuringViewRepresentable: ViewRepresentableType
   where
   RepresentableViewType == SwiftUIMeasurementContainer<Content>
@@ -31,6 +31,7 @@ protocol MeasuringViewRepresentable: ViewRepresentableType
 
 // MARK: Extensions
 
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 extension MeasuringViewRepresentable {
   /// Returns a copy of this view with its sizing strategy updated to the given `sizing` value.
   func sizing(_ strategy: SwiftUIMeasurementContainerStrategy) -> Self {
@@ -43,6 +44,7 @@ extension MeasuringViewRepresentable {
 // MARK: Defaults
 
 #if os(iOS) || os(tvOS)
+@available(iOS 13.0, tvOS 13.0, *)
 extension MeasuringViewRepresentable {
   func _overrideSizeThatFits(
     _ size: inout CGSize,
@@ -84,6 +86,7 @@ extension MeasuringViewRepresentable {
 }
 
 #elseif os(macOS)
+@available(macOS 10.15, *)
 extension MeasuringViewRepresentable {
   func _overrideSizeThatFits(
     _ size: inout CGSize,
@@ -122,5 +125,4 @@ extension MeasuringViewRepresentable {
   }
   #endif
 }
-#endif
 #endif

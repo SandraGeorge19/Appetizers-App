@@ -8,7 +8,7 @@
 import CoreGraphics
 import Foundation
 
-extension [LayerModel] {
+extension Array where Element == LayerModel {
 
   func initializeCompositionLayers(
     assetLibrary: AssetLibrary?,
@@ -41,7 +41,7 @@ extension [LayerModel] {
         layerMap[layer.index] = solidContainer
       } else if
         let precompLayer = layer as? PreCompLayerModel,
-        let assetLibrary,
+        let assetLibrary = assetLibrary,
         let precompAsset = assetLibrary.precompAssets[precompLayer.referenceID]
       {
         let precompContainer = PreCompositionLayer(
@@ -58,7 +58,7 @@ extension [LayerModel] {
         layerMap[layer.index] = precompContainer
       } else if
         let imageLayer = layer as? ImageLayerModel,
-        let assetLibrary,
+        let assetLibrary = assetLibrary,
         let imageAsset = assetLibrary.imageAssets[imageLayer.referenceID]
       {
         let imageContainer = ImageCompositionLayer(

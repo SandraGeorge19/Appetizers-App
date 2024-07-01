@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/14/19.
 //
 
+import Foundation
+
 // MARK: - KeyframeGroup
 
 /// Used for coding/decoding a group of Keyframes by type.
@@ -164,7 +166,7 @@ extension KeyframeGroup: DictionaryInitializable where T: AnyInitializable {
           let value: T = data.startValue ?? previousKeyframeData?.endValue,
           let time = data.time
         else {
-          throw InitializableError.invalidInput()
+          throw InitializableError.invalidInput
         }
         keyframes.append(Keyframe<T>(
           value: value,

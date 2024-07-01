@@ -1,5 +1,5 @@
 import Foundation
-#if canImport(UIKit)
+#if os(iOS) || os(tvOS) || os(watchOS) || targetEnvironment(macCatalyst)
 import UIKit
 #endif
 

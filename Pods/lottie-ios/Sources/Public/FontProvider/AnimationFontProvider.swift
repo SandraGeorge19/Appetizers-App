@@ -6,7 +6,9 @@
 //  Copyright © 2020 YurtvilleProds. All rights reserved.
 //
 
+import CoreGraphics
 import CoreText
+import Foundation
 
 // MARK: - AnimationFontProvider
 

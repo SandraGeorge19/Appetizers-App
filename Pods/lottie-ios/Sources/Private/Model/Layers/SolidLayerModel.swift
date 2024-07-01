@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/8/19.
 //
 
+import Foundation
+
 /// A layer that holds a solid color.
 final class SolidLayerModel: LayerModel {
 

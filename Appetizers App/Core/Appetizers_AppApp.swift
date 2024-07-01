@@ -9,11 +9,9 @@ import SwiftUI
 
 @main
 struct Appetizers_AppApp: App {
-    let viewModel = OrderViewModel()
     var body: some Scene {
         WindowGroup {
-            AppetizersTabView()
-                .environmentObject(viewModel)
+            SplashScreen()
         }
     }
 }

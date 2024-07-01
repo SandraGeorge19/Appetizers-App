@@ -5,6 +5,7 @@
 //  Created by Brandon Withrow on 1/25/19.
 //
 
+import Foundation
 import QuartzCore
 
 final class PreCompositionLayer: CompositionLayer {
@@ -101,7 +102,7 @@ final class PreCompositionLayer: CompositionLayer {
   let remappingNode: NodeProperty<LottieVector1D>?
 
   override var keypathProperties: [String: AnyNodeProperty] {
-    guard let remappingNode else {
+    guard let remappingNode = remappingNode else {
       return super.keypathProperties
     }
     return ["Time Remap" : remappingNode]
@@ -109,7 +110,7 @@ final class PreCompositionLayer: CompositionLayer {
 
   override func displayContentsWithFrame(frame: CGFloat, forceUpdates: Bool) {
     let localFrame: CGFloat
-    if let remappingNode {
+    if let remappingNode = remappingNode {
       remappingNode.update(frame: frame)
       localFrame = remappingNode.value.cgFloatValue * frameRate
     } else {

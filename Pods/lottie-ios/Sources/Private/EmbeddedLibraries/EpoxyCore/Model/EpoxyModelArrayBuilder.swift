@@ -16,7 +16,7 @@ enum EpoxyModelArrayBuilder<Model> {
   }
 
   static func buildExpression(_ expression: Expression?) -> Component {
-    if let expression {
+    if let expression = expression {
       return [expression]
     }
     return []

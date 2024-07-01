@@ -1,19 +1,19 @@
 // Created by Bryn Bodayle on 1/20/22.
 // Copyright © 2022 Airbnb Inc. All rights reserved.
 
-#if canImport(SwiftUI)
 import SwiftUI
 
 // MARK: - LottieView
 
 /// A wrapper which exposes Lottie's `LottieAnimationView` to SwiftUI
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, *)
 public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
 
   // MARK: Lifecycle
 
   /// Creates a `LottieView` that displays the given animation
   public init(animation: LottieAnimation?) where Placeholder == EmptyView {
-    localAnimation = animation.map(LottieAnimationSource.lottieAnimation)
+    _animationSource = State(initialValue: animation.map(LottieAnimationSource.lottieAnimation))
     placeholder = nil
   }
 
@@ -28,7 +28,7 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   /// }
   /// ```
   public init(dotLottieFile: DotLottieFile?) where Placeholder == EmptyView {
-    localAnimation = dotLottieFile.map(LottieAnimationSource.dotLottieFile)
+    _animationSource = State(initialValue: dotLottieFile.map(LottieAnimationSource.dotLottieFile))
     placeholder = nil
   }
 
@@ -106,32 +106,47 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
     _ loadAnimation: @escaping () async throws -> LottieAnimationSource?,
     @ViewBuilder placeholder: @escaping () -> Placeholder)
   {
-    localAnimation = nil
     self.loadAnimation = loadAnimation
     self.placeholder = placeholder
+    _animationSource = State(initialValue: nil)
   }
 
   // MARK: Public
 
   public var body: some View {
-    LottieAnimationView.swiftUIView {
-      LottieAnimationView(
-        animationSource: animationSource,
-        imageProvider: imageProviderConfiguration?.imageProvider,
-        textProvider: textProvider,
-        fontProvider: fontProvider,
-        configuration: configuration,
-        logger: logger)
-    }
-    .sizing(sizing)
-    .configure { context in
-      applyCurrentAnimationConfiguration(to: context.view, in: context.container)
-    }
-    .configurations(configurations)
-    .opacity(animationSource == nil ? 0 : 1)
-    .overlay {
-      placeholder?()
-        .opacity(animationSource == nil ? 1 : 0)
+    ZStack {
+      if let animationSource = animationSource {
+        LottieAnimationView.swiftUIView {
+          defer { animationDidLoad?(animationSource) }
+          return LottieAnimationView(
+            animationSource: animationSource,
+            imageProvider: imageProvider,
+            textProvider: textProvider,
+            fontProvider: fontProvider,
+            configuration: configuration,
+            logger: logger)
+        }
+        .sizing(sizing)
+        .configure { context in
+          // We check referential equality of the animation before updating as updating the
+          // animation has a side-effect of rebuilding the animation layer, and it would be
+          // prohibitive to do so on every state update.
+          if animationSource.animation !== context.view.animation {
+            context.view.loadAnimation(animationSource)
+            animationDidLoad?(animationSource)
+          }
+
+          if
+            let playbackMode = playbackMode,
+            playbackMode != context.view.currentPlaybackMode
+          {
+            context.view.play(playbackMode, animationCompletionHandler: animationCompletionHandler)
+          }
+        }
+        .configurations(configurations)
+      } else {
+        placeholder?()
+      }
     }
     .onAppear {
       loadAnimationIfNecessary()
@@ -152,74 +167,39 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
     return copy
   }
 
-  /// Returns a copy of this view that can be resized by scaling its animation
-  /// to always fit the size offered by its parent.
+  /// Returns a copy of this view that can be resized by scaling its animation to fit the size
+  /// offered by its parent.
   public func resizable() -> Self {
     var copy = self
     copy.sizing = .proposed
     return copy
   }
 
-  /// Returns a copy of this view that adopts the intrinsic size of the animation,
-  /// up to the proposed size.
-  public func intrinsicSize() -> Self {
-    var copy = self
-    copy.sizing = .intrinsic
-    return copy
-  }
-
-  @available(*, deprecated, renamed: "playing()", message: "Will be removed in a future major release.")
+  // Returns a copy of this view playing once from the current frame to the end frame
   public func play() -> Self {
-    playbackMode(.playing(.fromProgress(nil, toProgress: 1, loopMode: .playOnce)))
+    play(loopMode: .playOnce)
   }
 
   /// Returns a copy of this view that loops its animation from the start to end whenever visible
   public func looping() -> Self {
-    playbackMode(.playing(.fromProgress(0, toProgress: 1, loopMode: .loop)))
-  }
-
-  @available(*, deprecated, renamed: "playing(_:)", message: "Will be removed in a future major release.")
-  public func play(loopMode: LottieLoopMode = .playOnce) -> Self {
-    playbackMode(.playing(.fromProgress(nil, toProgress: 1, loopMode: loopMode)))
-  }
-
-  @available(*, deprecated, renamed: "playbackMode(_:)", message: "Will be removed in a future major release.")
-  public func play(_ playbackMode: LottiePlaybackMode) -> Self {
-    self.playbackMode(playbackMode)
-  }
-
-  /// Returns a copy of this view playing with the given playback mode
-  public func playing(_ mode: LottiePlaybackMode.PlaybackMode) -> Self {
-    playbackMode(.playing(mode))
+    play(.fromProgress(0, toProgress: 1, loopMode: .loop))
   }
 
   /// Returns a copy of this view playing from the current frame to the end frame,
   /// with the given `LottiePlaybackMode`.
-  public func playing(loopMode: LottieLoopMode) -> Self {
-    playbackMode(.playing(.fromProgress(nil, toProgress: 1, loopMode: loopMode)))
+  public func play(loopMode: LottieLoopMode = .playOnce) -> Self {
+    play(.toProgress(1, loopMode: loopMode))
   }
 
-  // Returns a copy of this view playing once from the current frame to the end frame
-  public func playing() -> Self {
-    playbackMode(.playing(.fromProgress(nil, toProgress: 1, loopMode: .playOnce)))
-  }
-
-  /// Returns a copy of this view paused with the given state
-  public func paused(at state: LottiePlaybackMode.PausedState = .currentFrame) -> Self {
-    playbackMode(.paused(at: state))
+  /// Returns a copy of this view playing with the given `LottiePlaybackMode`
+  public func play(_ playbackMode: LottiePlaybackMode) -> Self {
+    self.playbackMode(playbackMode)
   }
 
   /// Returns a copy of this view using the given `LottiePlaybackMode`
   public func playbackMode(_ playbackMode: LottiePlaybackMode) -> Self {
     var copy = self
     copy.playbackMode = playbackMode
-    return copy
-  }
-
-  /// Returns a copy of this view playing its animation at the given speed
-  public func animationSpeed(_ animationSpeed: Double) -> Self {
-    var copy = self
-    copy.animationSpeed = animationSpeed
     return copy
   }
 
@@ -289,17 +269,13 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   /// The image provider must be `Equatable` to avoid unnecessary state updates / re-renders.
   public func imageProvider<ImageProvider: AnimationImageProvider & Equatable>(_ imageProvider: ImageProvider) -> Self {
     var copy = self
+    copy.imageProvider = imageProvider
 
-    copy.imageProviderConfiguration = (
-      imageProvider: imageProvider,
-      imageProvidersAreEqual: { untypedLHS, untypedRHS in
-        guard
-          let lhs = untypedLHS as? ImageProvider,
-          let rhs = untypedRHS as? ImageProvider
-        else { return false }
-
-        return lhs == rhs
-      })
+    copy = copy.configure { view in
+      if (view.imageProvider as? ImageProvider) != imageProvider {
+        view.imageProvider = imageProvider
+      }
+    }
 
     return copy
   }
@@ -354,9 +330,9 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   ///  - If the `animationProgress` is `nil`, no changes will be made and any existing animations
   ///    will continue playing uninterrupted.
   public func currentProgress(_ currentProgress: AnimationProgressTime?) -> Self {
-    guard let currentProgress else { return self }
+    guard let currentProgress = currentProgress else { return self }
     var copy = self
-    copy.playbackMode = .paused(at: .progress(currentProgress))
+    copy.playbackMode = .progress(currentProgress)
     return copy
   }
 
@@ -366,9 +342,9 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   ///  - If the `currentFrame` is `nil`, no changes will be made and any existing animations
   ///    will continue playing uninterrupted.
   public func currentFrame(_ currentFrame: AnimationFrameTime?) -> Self {
-    guard let currentFrame else { return self }
+    guard let currentFrame = currentFrame else { return self }
     var copy = self
-    copy.playbackMode = .paused(at: .frame(currentFrame))
+    copy.playbackMode = .frame(currentFrame)
     return copy
   }
 
@@ -378,9 +354,9 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   ///  - If the `currentTime` is `nil`, no changes will be made and any existing animations
   ///    will continue playing uninterrupted.
   public func currentTime(_ currentTime: TimeInterval?) -> Self {
-    guard let currentTime else { return self }
+    guard let currentTime = currentTime else { return self }
     var copy = self
-    copy.playbackMode = .paused(at: .time(currentTime))
+    copy.playbackMode = .time(currentTime)
     return copy
   }
 
@@ -394,7 +370,7 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   ///   - showPlaceholder: When `true`, the current animation will be removed before invoking `loadAnimation`,
   ///     displaying the `Placeholder` until the new animation loads.
   ///     When `false`, the previous animation remains visible while the new one loads.
-  public func reloadAnimationTrigger(_ value: some Equatable, showPlaceholder: Bool = true) -> Self {
+  public func reloadAnimationTrigger<Value: Equatable>(_ value: Value, showPlaceholder: Bool = true) -> Self {
     var copy = self
     copy.reloadAnimationTrigger = AnyEquatable(value)
     copy.showPlaceholderWhileReloading = showPlaceholder
@@ -412,7 +388,7 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   public func getRealtimeAnimationProgress(_ realtimeAnimationProgress: Binding<AnimationProgressTime>?) -> some View {
     TimelineView(.animation(paused: realtimeAnimationProgress == nil)) { _ in
       configure { view in
-        if let realtimeAnimationProgress {
+        if let realtimeAnimationProgress = realtimeAnimationProgress {
           DispatchQueue.main.async {
             realtimeAnimationProgress.wrappedValue = view.realtimeAnimationProgress
           }
@@ -429,10 +405,10 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
   ///    a state update every frame.
   ///  - If the binding is `nil`, the `TimelineView` will be paused and no updates will occur to the binding.
   @available(iOS 15.0, tvOS 15.0, macOS 12.0, *)
-  public func getRealtimeAnimationFrame(_ realtimeAnimationFrame: Binding<AnimationFrameTime>?) -> some View {
+  public func getRealtimeAnimationFrame(_ realtimeAnimationFrame: Binding<AnimationProgressTime>?) -> some View {
     TimelineView(.animation(paused: realtimeAnimationFrame == nil)) { _ in
       configure { view in
-        if let realtimeAnimationFrame {
+        if let realtimeAnimationFrame = realtimeAnimationFrame {
           DispatchQueue.main.async {
             realtimeAnimationFrame.wrappedValue = view.realtimeAnimationFrame
           }
@@ -441,57 +417,33 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
     }
   }
 
-  /// Returns a copy of this view with the `DotLottieConfigurationComponents`
-  /// updated to the given value.
-  ///  - Defaults to `[.imageProvider]`
-  ///  - If a component is specified here, that value in the `DotLottieConfiguration`
-  ///    of an active dotLottie animation will override any value provided via other methods.
-  public func dotLottieConfigurationComponents(
-    _ dotLottieConfigurationComponents: DotLottieConfigurationComponents)
-    -> Self
-  {
-    var copy = self
-    copy.dotLottieConfigurationComponents = dotLottieConfigurationComponents
-    return copy
-  }
-
   // MARK: Internal
 
   var configurations = [SwiftUIView<LottieAnimationView, Void>.Configuration]()
 
   // MARK: Private
 
-  private let localAnimation: LottieAnimationSource?
-  @State private var remoteAnimation: LottieAnimationSource?
+  @State private var animationSource: LottieAnimationSource?
   private var playbackMode: LottiePlaybackMode?
-  private var animationSpeed: Double?
   private var reloadAnimationTrigger: AnyEquatable?
   private var loadAnimation: (() async throws -> LottieAnimationSource?)?
   private var animationDidLoad: ((LottieAnimationSource) -> Void)?
   private var animationCompletionHandler: LottieCompletionBlock?
   private var showPlaceholderWhileReloading = false
+  private var imageProvider: AnimationImageProvider?
   private var textProvider: AnimationKeypathTextProvider = DefaultTextProvider()
   private var fontProvider: AnimationFontProvider = DefaultFontProvider()
   private var configuration: LottieConfiguration = .shared
-  private var dotLottieConfigurationComponents: DotLottieConfigurationComponents = .imageProvider
   private var logger: LottieLogger = .shared
   private var sizing = SwiftUIMeasurementContainerStrategy.automatic
   private let placeholder: (() -> Placeholder)?
 
-  private var imageProviderConfiguration: (
-    imageProvider: AnimationImageProvider,
-    imageProvidersAreEqual: (AnimationImageProvider, AnimationImageProvider) -> Bool)?
-
-  private var animationSource: LottieAnimationSource? {
-    localAnimation ?? remoteAnimation
-  }
-
   private func loadAnimationIfNecessary() {
-    guard let loadAnimation else { return }
+    guard let loadAnimation = loadAnimation else { return }
 
     Task {
       do {
-        remoteAnimation = try await loadAnimation()
+        animationSource = try await loadAnimation()
       } catch {
         logger.warn("Failed to load asynchronous Lottie animation with error: \(error)")
       }
@@ -502,96 +454,9 @@ public struct LottieView<Placeholder: View>: UIViewConfiguringSwiftUIView {
     guard loadAnimation != nil else { return }
 
     if showPlaceholderWhileReloading {
-      remoteAnimation = nil
+      animationSource = nil
     }
 
     loadAnimationIfNecessary()
   }
-
-  /// Applies playback configuration for the current animation to the `LottieAnimationView`
-  private func applyCurrentAnimationConfiguration(
-    to view: LottieAnimationView,
-    in container: SwiftUIMeasurementContainer<LottieAnimationView>)
-  {
-    guard let animationSource else { return }
-    var imageProviderConfiguration = imageProviderConfiguration
-    var playbackMode = playbackMode
-    var animationSpeed = animationSpeed
-
-    // When playing a dotLottie animation, its `DotLottieConfiguration`
-    // can override some behavior of the animation.
-    if let dotLottieConfiguration = animationSource.dotLottieAnimation?.configuration {
-      // Only use the value from the `DotLottieConfiguration` is that component
-      // is specified in the list of `dotLottieConfigurationComponents`.
-      if dotLottieConfigurationComponents.contains(.loopMode) {
-        playbackMode = playbackMode?.loopMode(dotLottieConfiguration.loopMode)
-      }
-
-      if dotLottieConfigurationComponents.contains(.animationSpeed) {
-        animationSpeed = dotLottieConfiguration.speed
-      }
-
-      if
-        dotLottieConfigurationComponents.contains(.imageProvider),
-        let dotLottieImageProvider = dotLottieConfiguration.dotLottieImageProvider
-      {
-        imageProviderConfiguration = (
-          imageProvider: dotLottieImageProvider,
-          imageProvidersAreEqual: { untypedLHS, untypedRHS in
-            guard
-              let lhs = untypedLHS as? DotLottieImageProvider,
-              let rhs = untypedRHS as? DotLottieImageProvider
-            else { return false }
-
-            return lhs == rhs
-          })
-      }
-    }
-
-    // We check referential equality of the animation before updating as updating the
-    // animation has a side-effect of rebuilding the animation layer, and it would be
-    // prohibitive to do so on every state update.
-    if animationSource.animation !== view.animation {
-      view.loadAnimation(animationSource)
-      animationDidLoad?(animationSource)
-
-      // Invalidate the intrinsic size of the SwiftUI measurement container,
-      // since any cached measurements will be out of date after updating the animation.
-      container.invalidateIntrinsicContentSize()
-    }
-
-    if 
-      let playbackMode,
-      playbackMode != view.currentPlaybackMode
-    {
-      view.setPlaybackMode(playbackMode, completion: animationCompletionHandler)
-    }
-
-    if
-      let (imageProvider, imageProvidersAreEqual) = imageProviderConfiguration,
-      !imageProvidersAreEqual(imageProvider, view.imageProvider)
-    {
-      view.imageProvider = imageProvider
-    }
-
-    if
-      let animationSpeed,
-      animationSpeed != view.animationSpeed
-    {
-      view.animationSpeed = animationSpeed
-    }
-  }
 }
-
-extension View {
-
-  /// The `.overlay` modifier that uses a `ViewBuilder` is available in iOS 15+, this helper function helps us to use the same API in older OSs
-  fileprivate func overlay(
-    @ViewBuilder content: () -> some View)
-    -> some View
-  {
-    overlay(content(), alignment: .center)
-  }
-}
-
-#endif

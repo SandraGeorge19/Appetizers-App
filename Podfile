@@ -6,7 +6,7 @@ target 'Appetizers App' do
   use_frameworks!
 
   # Pods for Appetizers App
-  pod 'lottie-ios'
+  pod 'lottie-ios', '4.3.0'
 
   target 'Appetizers AppTests' do
     inherit! :search_paths

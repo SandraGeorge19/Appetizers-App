@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/18/19.
 //
 
+import Foundation
+
 // MARK: - NodeTree
 
 final class NodeTree {
@@ -15,7 +17,7 @@ final class NodeTree {
   var childrenNodes: [AnimatorNode] = []
 }
 
-extension [ShapeItem] {
+extension Array where Element == ShapeItem {
   func initializeNodeTree() -> NodeTree {
     let nodeTree = NodeTree()
 

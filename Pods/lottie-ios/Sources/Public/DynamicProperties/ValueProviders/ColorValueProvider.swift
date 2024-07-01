@@ -60,12 +60,12 @@ public final class ColorValueProvider: ValueProvider {
   }
 
   public var storage: ValueProviderStorage<LottieColor> {
-    if let block {
+    if let block = block {
       return .closure { frame in
         self.hasUpdate = false
         return block(frame)
       }
-    } else if let keyframes {
+    } else if let keyframes = keyframes {
       return .keyframes(keyframes)
     } else {
       hasUpdate = false

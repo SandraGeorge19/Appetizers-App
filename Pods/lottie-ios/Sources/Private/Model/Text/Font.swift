@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/9/19.
 //
 
+import Foundation
+
 // MARK: - Font
 
 final class Font: Codable, Sendable, DictionaryInitializable {

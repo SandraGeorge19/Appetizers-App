@@ -5,6 +5,7 @@
 //  Created by Brandon Withrow on 1/22/19.
 //
 
+import Foundation
 import QuartzCore
 
 // MARK: - CompositionLayer
@@ -51,7 +52,7 @@ class CompositionLayer: CALayer, KeypathSearchable {
     compositingFilter = layer.blendMode.filterName
     addSublayer(contentsLayer)
 
-    if let maskLayer {
+    if let maskLayer = maskLayer {
       contentsLayer.mask = maskLayer
     }
 

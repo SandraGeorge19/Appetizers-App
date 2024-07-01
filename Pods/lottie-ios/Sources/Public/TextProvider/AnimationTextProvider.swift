@@ -5,6 +5,8 @@
 //  Created by Alexandr Goncharov on 07/06/2019.
 //
 
+import Foundation
+
 // MARK: - AnimationKeypathTextProvider
 
 /// Protocol for providing dynamic text to for a Lottie animation.

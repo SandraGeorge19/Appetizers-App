@@ -6,7 +6,7 @@
 //
 
 import Foundation
-#if canImport(UIKit)
+#if os(iOS) || os(tvOS) || os(watchOS) || targetEnvironment(macCatalyst)
 
 /// An Objective-C compatible wrapper around Lottie's AnimationKeypath
 @objc

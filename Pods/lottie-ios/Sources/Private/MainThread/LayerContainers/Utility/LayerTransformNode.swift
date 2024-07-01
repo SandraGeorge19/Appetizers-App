@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 2/4/19.
 //
 
+import CoreGraphics
+import Foundation
 import QuartzCore
 
 // MARK: - LayerTransformProperties

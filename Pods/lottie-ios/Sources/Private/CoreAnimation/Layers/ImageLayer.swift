@@ -65,7 +65,7 @@ extension ImageLayer: CustomLayoutLayer {
   func layout(superlayerBounds: CGRect) {
     anchorPoint = .zero
 
-    guard let imageAsset else {
+    guard let imageAsset = imageAsset else {
       bounds = superlayerBounds
       return
     }

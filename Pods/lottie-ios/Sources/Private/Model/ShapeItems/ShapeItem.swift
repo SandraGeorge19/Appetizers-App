@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/8/19.
 //
 
+import Foundation
+
 // MARK: - ShapeType
 
 enum ShapeType: String, Codable, Sendable {
@@ -120,7 +122,7 @@ class ShapeItem: Codable, DictionaryInitializable {
   }
 }
 
-extension [ShapeItem] {
+extension Array where Element == ShapeItem {
 
   static func fromDictionaries(_ dictionaries: [[String: Any]]) throws -> [ShapeItem] {
     try dictionaries.compactMap { dictionary in
@@ -167,5 +169,4 @@ extension [ShapeItem] {
 
 /// Since `ShapeItem` isn't `final`, we have to use `@unchecked Sendable` instead of `Sendable.`
 /// All `ShapeItem` subclasses are immutable `Sendable` values.
-// swiftlint:disable:next no_unchecked_sendable
 extension ShapeItem: @unchecked Sendable { }

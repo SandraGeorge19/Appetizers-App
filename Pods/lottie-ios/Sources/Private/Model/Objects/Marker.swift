@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/9/19.
 //
 
+import Foundation
+
 /// A time marker
 final class Marker: Codable, Sendable, DictionaryInitializable {
 

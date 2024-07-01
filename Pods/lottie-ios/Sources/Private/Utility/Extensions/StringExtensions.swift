@@ -15,11 +15,6 @@ extension String {
     return .rgb(red, green, blue)
   }
 
-  var lottieColor: LottieColor {
-    let (red, green, blue) = hexColorComponents()
-    return .init(r: red, g: green, b: blue, a: 1.0)
-  }
-
   func hexColorComponents() -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
     var cString: String = trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 

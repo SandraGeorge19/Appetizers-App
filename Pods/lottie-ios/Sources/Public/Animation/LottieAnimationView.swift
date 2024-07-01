@@ -5,6 +5,7 @@
 //  Created by Brandon Withrow on 1/23/19.
 //
 
+import Foundation
 import QuartzCore
 
 // MARK: - LottieBackgroundBehavior
@@ -114,7 +115,7 @@ open class LottieAnimationView: LottieAnimationViewBase {
     self.logger = logger
     super.init(frame: .zero)
     commonInit()
-    if let animation {
+    if let animation = animation {
       frame = animation.bounds
     }
   }
@@ -138,7 +139,7 @@ open class LottieAnimationView: LottieAnimationViewBase {
     self.logger = logger
     super.init(frame: .zero)
     commonInit()
-    if let animation {
+    if let animation = animation {
       frame = animation.bounds
     }
   }
@@ -217,13 +218,6 @@ open class LottieAnimationView: LottieAnimationViewBase {
   }
 
   // MARK: Open
-
-  /// Applies the given `LottiePlaybackMode` to this layer.
-  /// - Parameter completion: A closure that is called after
-  ///   an animation triggered by this method completes.
-  open func play(_ mode: LottiePlaybackMode.PlaybackMode, completion: LottieCompletionBlock? = nil) {
-    lottieAnimationLayer.play(mode, completion: completion)
-  }
 
   /// Plays the animation from its current state to the end.
   ///
@@ -347,32 +341,19 @@ open class LottieAnimationView: LottieAnimationViewBase {
     lottieAnimationLayer.pause()
   }
 
-  @available(*, deprecated, renamed: "setPlaybackMode(_:completion:)", message: "Will be removed in a future major release.")
+  /// Applies the given `LottiePlaybackMode` to this layer.
+  /// - Parameter animationCompletionHandler: A closure that is called after
+  ///   an animation triggered by this method completes. This completion
+  ///   handler is **not called** after setting the playback mode to a
+  ///   mode that doesn't animate (e.g. `progress`, `frame`, `time`, or `pause`).
   open func play(
     _ playbackMode: LottiePlaybackMode,
     animationCompletionHandler: LottieCompletionBlock? = nil)
   {
-    lottieAnimationLayer.setPlaybackMode(playbackMode, completion: animationCompletionHandler)
-  }
-
-  /// Applies the given `LottiePlaybackMode` to this layer.
-  /// - Parameter completion: A closure that is called after
-  ///   an animation triggered by this method completes.
-  open func setPlaybackMode(
-    _ playbackMode: LottiePlaybackMode,
-    completion: LottieCompletionBlock? = nil)
-  {
-    lottieAnimationLayer.setPlaybackMode(playbackMode, completion: completion)
+    lottieAnimationLayer.play(playbackMode, animationCompletionHandler: animationCompletionHandler)
   }
 
   // MARK: Public
-
-  /// Whether or not transform and position changes of the view should animate alongside
-  /// any existing animation context.
-  ///  - Defaults to `true` which will grab the current animation context and animate position and
-  ///    transform changes matching the current context's curve and duration.
-  ///    `false` will cause transform and position changes to happen unanimated
-  public var animateLayoutChangesWithCurrentCoreAnimationContext = true
 
   /// The configuration that this `LottieAnimationView` uses when playing its animation
   public var configuration: LottieConfiguration {
@@ -437,7 +418,7 @@ open class LottieAnimationView: LottieAnimationViewBase {
   /// ```
   public var animationLoaded: ((_ animationView: LottieAnimationView, _ animation: LottieAnimation) -> Void)? {
     didSet {
-      if let animation {
+      if let animation = animation {
         animationLoaded?(self, animation)
       }
     }
@@ -813,9 +794,6 @@ open class LottieAnimationView: LottieAnimationViewBase {
 
   // MARK: Internal
 
-  // The backing CALayer for this animation view.
-  let lottieAnimationLayer: LottieAnimationLayer
-
   var animationLayer: RootAnimationLayer? {
     lottieAnimationLayer.rootAnimationLayer
   }
@@ -834,14 +812,14 @@ open class LottieAnimationView: LottieAnimationViewBase {
     viewLayer?.addSublayer(lottieAnimationLayer)
 
     lottieAnimationLayer.animationLoaded = { [weak self] _, animation in
-      guard let self else { return }
+      guard let self = self else { return }
       self.animationLoaded?(self, animation)
       self.invalidateIntrinsicContentSize()
       self.setNeedsLayout()
     }
 
     lottieAnimationLayer.animationLayerDidLoad = { [weak self] _, _ in
-      guard let self else { return }
+      guard let self = self else { return }
       self.invalidateIntrinsicContentSize()
       self.setNeedsLayout()
     }
@@ -854,7 +832,8 @@ open class LottieAnimationView: LottieAnimationViewBase {
     let xform: CATransform3D
     var shouldForceUpdates = false
 
-    if let viewportFrame {
+    if let viewportFrame = viewportFrame {
+      setNeedsLayout()
       shouldForceUpdates = contentMode == .redraw
 
       let compAspect = viewportFrame.size.width / viewportFrame.size.height
@@ -938,11 +917,7 @@ open class LottieAnimationView: LottieAnimationViewBase {
     // If layout is changed without animation, explicitly set animation duration to 0.0
     // inside CATransaction to avoid unwanted artifacts.
     /// Check if any animation exist on the view's layer, and match it.
-    if
-      let key = lottieAnimationLayer.animationKeys()?.first,
-      let animation = lottieAnimationLayer.animation(forKey: key),
-      animateLayoutChangesWithCurrentCoreAnimationContext
-    {
+    if let key = lottieAnimationLayer.animationKeys()?.first, let animation = lottieAnimationLayer.animation(forKey: key) {
       // The layout is happening within an animation block. Grab the animation data.
 
       let positionKey = "LayoutPositionAnimation"
@@ -994,7 +969,11 @@ open class LottieAnimationView: LottieAnimationViewBase {
   }
 
   func updateRasterizationState() {
-    lottieAnimationLayer.updateRasterizationState()
+    if lottieAnimationLayer.isAnimationPlaying {
+      lottieAnimationLayer.animationLayer?.shouldRasterize = false
+    } else {
+      lottieAnimationLayer.animationLayer?.shouldRasterize = lottieAnimationLayer.shouldRasterizeWhenIdle
+    }
   }
 
   /// Updates the animation frame. Does not affect any current animations
@@ -1049,6 +1028,9 @@ open class LottieAnimationView: LottieAnimationViewBase {
   }
 
   // MARK: Private
+
+  // The backing CALayer for this animation view.
+  private let lottieAnimationLayer: LottieAnimationLayer
 
   private let logger: LottieLogger
 }

@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import Foundation
 
 /// A node that has an output of a BezierPath
 class PathOutputNode: NodeOutput {

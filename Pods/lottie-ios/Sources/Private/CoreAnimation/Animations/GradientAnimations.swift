@@ -114,7 +114,7 @@ extension GradientRenderLayer {
 
     let combinedKeyframes = Keyframes.combined(
       gradient.startPoint, gradient.endPoint,
-      makeCombinedResult: { absoluteStartPoint, absoluteEndPoint -> RadialGradientKeyframes in
+      makeCombinedResult: { absoluteStartPoint, absoluteEndPoint -> (startPoint: CGPoint, endPoint: CGPoint) in
         // Convert the absolute start / end points to the relative structure used by Core Animation
         let relativeStartPoint = percentBasedPointInBounds(from: absoluteStartPoint.pointValue)
         let radius = absoluteStartPoint.pointValue.distanceTo(absoluteEndPoint.pointValue)
@@ -123,7 +123,7 @@ extension GradientRenderLayer {
             x: absoluteStartPoint.x + radius,
             y: absoluteStartPoint.y + radius))
 
-        return RadialGradientKeyframes(startPoint: relativeStartPoint, endPoint: relativeEndPoint)
+        return (startPoint: relativeStartPoint, endPoint: relativeEndPoint)
       })
 
     try addAnimation(
@@ -137,19 +137,6 @@ extension GradientRenderLayer {
       keyframes: combinedKeyframes,
       value: \.endPoint,
       context: context)
-  }
-}
-
-// MARK: - RadialGradientKeyframes
-
-private struct RadialGradientKeyframes: Interpolatable {
-  let startPoint: CGPoint
-  let endPoint: CGPoint
-
-  func interpolate(to: RadialGradientKeyframes, amount: CGFloat) -> RadialGradientKeyframes {
-    RadialGradientKeyframes(
-      startPoint: startPoint.interpolate(to: to.startPoint, amount: amount),
-      endPoint: endPoint.interpolate(to: to.endPoint, amount: amount))
   }
 }
 

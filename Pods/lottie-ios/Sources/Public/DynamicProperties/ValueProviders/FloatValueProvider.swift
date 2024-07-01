@@ -48,7 +48,7 @@ public final class FloatValueProvider: ValueProvider {
   }
 
   public var storage: ValueProviderStorage<LottieVector1D> {
-    if let block {
+    if let block = block {
       return .closure { frame in
         self.hasUpdate = false
         return LottieVector1D(Double(block(frame)))

@@ -21,7 +21,7 @@ extension CAAnimation {
     //  0%                                100%
     //
     let baseAnimation = self
-    baseAnimation.duration = context.animationDuration
+    baseAnimation.duration = context.animation.duration
     baseAnimation.speed = (context.endFrame < context.startFrame) ? -1 : 1
 
     // To select the subrange of the `baseAnimation` that should be played,

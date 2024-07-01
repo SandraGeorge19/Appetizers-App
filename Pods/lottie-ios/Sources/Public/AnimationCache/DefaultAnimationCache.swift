@@ -7,15 +7,13 @@
 
 import Foundation
 
-// MARK: - DefaultAnimationCache
-
 /// A thread-safe Animation Cache that will store animations up to `cacheSize`.
 ///
 /// Once `cacheSize` is reached, animations can be ejected.
 /// The default size of the cache is 100.
 ///
-/// This cache implementation also responds to memory pressure.
-public class DefaultAnimationCache: AnimationCacheProvider {
+/// This cache implementation also responds to memory pressure, as it's backed by `NSCache`.
+public class DefaultAnimationCache: AnimationCacheProvider, @unchecked Sendable {
 
   // MARK: Lifecycle
 
@@ -28,7 +26,7 @@ public class DefaultAnimationCache: AnimationCacheProvider {
   /// The global shared Cache.
   public static let sharedCache = DefaultAnimationCache()
 
-  /// The maximum number of animations that can be stored in the cache.
+  /// The size of the cache.
   public var cacheSize: Int {
     get { cache.countLimit }
     set { cache.countLimit = newValue }
@@ -36,32 +34,20 @@ public class DefaultAnimationCache: AnimationCacheProvider {
 
   /// Clears the Cache.
   public func clearCache() {
-    cache.removeAllValues()
+    cache.removeAllObjects()
   }
 
   public func animation(forKey key: String) -> LottieAnimation? {
-    cache.value(forKey: key)
+    cache.object(forKey: key as NSString)
   }
 
   public func setAnimation(_ animation: LottieAnimation, forKey key: String) {
-    cache.setValue(animation, forKey: key)
+    cache.setObject(animation, forKey: key as NSString)
   }
 
   // MARK: Private
 
   private static let defaultCacheCountLimit = 100
 
-  /// The underlying storage of this cache.
-  ///  - We use the `LRUCache` library instead of `NSCache`, because `NSCache`
-  ///    clears all cached values when the app is backgrounded instead of
-  ///    only when the app receives a memory warning notification.
-  private let cache = LRUCache<String, LottieAnimation>()
+  private let cache = NSCache<NSString, LottieAnimation>()
 }
-
-// MARK: Sendable
-
-// LottieAnimationCache has a Sendable requirement, but we can't
-// redesign DefaultAnimationCache to be properly Sendable without
-// making breaking changes.
-// swiftlint:disable:next no_unchecked_sendable
-extension DefaultAnimationCache: @unchecked Sendable { }

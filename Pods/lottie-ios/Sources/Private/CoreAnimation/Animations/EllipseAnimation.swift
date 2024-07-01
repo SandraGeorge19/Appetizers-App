@@ -29,15 +29,9 @@ extension CAShapeLayer {
 
 extension Ellipse {
   /// Data that represents how to render an ellipse at a specific point in time
-  struct Keyframe: Interpolatable {
+  struct Keyframe {
     let size: LottieVector3D
     let position: LottieVector3D
-
-    func interpolate(to: Ellipse.Keyframe, amount: CGFloat) -> Ellipse.Keyframe {
-      Keyframe(
-        size: size.interpolate(to: to.size, amount: amount),
-        position: position.interpolate(to: to.position, amount: amount))
-    }
   }
 
   /// Creates a single array of animatable keyframes from the separate arrays of keyframes in this Ellipse

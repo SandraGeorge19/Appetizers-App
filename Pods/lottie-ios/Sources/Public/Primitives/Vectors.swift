@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 2/4/19.
 //
 
+import Foundation
+
 // MARK: - LottieVector1D
 
 public struct LottieVector1D: Hashable, Sendable {

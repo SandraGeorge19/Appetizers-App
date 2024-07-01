@@ -117,7 +117,7 @@ final class CoreTextRenderLayer: CALayer {
   }
 
   override func draw(in ctx: CGContext) {
-    guard let attributedString else { return }
+    guard let attributedString = attributedString else { return }
     updateTextContent()
     guard fillFrameSetter != nil || strokeFrameSetter != nil else { return }
 
@@ -155,21 +155,21 @@ final class CoreTextRenderLayer: CALayer {
     // For some reason some fonts, such as Helvetica draw with and ascender that is greater than the one reported by CTFontGetAscender.
     // I suspect this is actually an issue with the Attributed string, but cannot reproduce.
 
-    if let fillFrame {
+    if let fillFrame = fillFrame {
       ctx.adjustWithLineOrigins(in: fillFrame, with: font)
-    } else if let strokeFrame {
+    } else if let strokeFrame = strokeFrame {
       ctx.adjustWithLineOrigins(in: strokeFrame, with: font)
     }
 
-    if !strokeOnTop, let strokeFrame {
+    if !strokeOnTop, let strokeFrame = strokeFrame {
       CTFrameDraw(strokeFrame, ctx)
     }
 
-    if let fillFrame {
+    if let fillFrame = fillFrame {
       CTFrameDraw(fillFrame, ctx)
     }
 
-    if strokeOnTop, let strokeFrame {
+    if strokeOnTop, let strokeFrame = strokeFrame {
       CTFrameDraw(strokeFrame, ctx)
     }
   }
@@ -184,8 +184,9 @@ final class CoreTextRenderLayer: CALayer {
   private var needsContentUpdate = false
 
   // Draws Debug colors for the font alignment.
+  @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
   private func drawDebug(_ ctx: CGContext) {
-    if let font {
+    if let font = font {
       let ascent = CTFontGetAscent(font)
       let descent = CTFontGetDescent(font)
       let capHeight = CTFontGetCapHeight(font)
@@ -223,7 +224,7 @@ final class CoreTextRenderLayer: CALayer {
   private func updateTextContent() {
     guard needsContentUpdate else { return }
     needsContentUpdate = false
-    guard let font, let text, text.count > 0, fillColor != nil || strokeColor != nil else {
+    guard let font = font, let text = text, text.count > 0, fillColor != nil || strokeColor != nil else {
       drawingRect = .zero
       drawingAnchor = .zero
       attributedString = nil
@@ -255,7 +256,7 @@ final class CoreTextRenderLayer: CALayer {
       NSAttributedString.Key.paragraphStyle: paragraphStyle,
     ]
 
-    if let fillColor {
+    if let fillColor = fillColor {
       attributes[NSAttributedString.Key.foregroundColor] = fillColor
     }
 
@@ -269,7 +270,7 @@ final class CoreTextRenderLayer: CALayer {
       fillFrameSetter = nil
     }
 
-    if let strokeColor {
+    if let strokeColor = strokeColor {
       attributes[NSAttributedString.Key.foregroundColor] = nil
       attributes[NSAttributedString.Key.strokeWidth] = strokeWidth
       attributes[NSAttributedString.Key.strokeColor] = strokeColor
@@ -286,7 +287,7 @@ final class CoreTextRenderLayer: CALayer {
 
     // Calculate drawing size and anchor offset
     let textAnchor: CGPoint
-    if let preferredSize {
+    if let preferredSize = preferredSize {
       drawingRect = CGRect(origin: .zero, size: preferredSize)
       drawingRect.size.height += (ascent - capHeight)
       drawingRect.size.height += descent
@@ -331,7 +332,7 @@ final class CoreTextRenderLayer: CALayer {
 extension CGContext {
 
   fileprivate func adjustWithLineOrigins(in frame: CTFrame, with font: CTFont?) {
-    guard let font else { return }
+    guard let font = font else { return }
 
     let count = CFArrayGetCount(CTFrameGetLines(frame))
 

@@ -48,7 +48,7 @@ public final class SizeValueProvider: ValueProvider {
   }
 
   public var storage: ValueProviderStorage<LottieVector3D> {
-    if let block {
+    if let block = block {
       return .closure { frame in
         self.hasUpdate = false
         return block(frame).vector3dValue

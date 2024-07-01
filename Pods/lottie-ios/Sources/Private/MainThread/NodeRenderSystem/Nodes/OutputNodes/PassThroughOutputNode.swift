@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import Foundation
 
 class PassThroughOutputNode: NodeOutput {
 
@@ -23,7 +24,7 @@ class PassThroughOutputNode: NodeOutput {
   var isEnabled = true
 
   var outputPath: CGPath? {
-    if let parent {
+    if let parent = parent {
       return parent.outputPath
     }
     return nil

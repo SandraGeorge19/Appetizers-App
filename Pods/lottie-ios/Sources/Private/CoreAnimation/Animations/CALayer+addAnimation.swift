@@ -10,7 +10,7 @@ extension CALayer {
   /// Constructs a `CAKeyframeAnimation` that reflects the given keyframes,
   /// and adds it to this `CALayer`.
   @nonobjc
-  func addAnimation<KeyframeValue: AnyInterpolatable, ValueRepresentation>(
+  func addAnimation<KeyframeValue, ValueRepresentation>(
     for property: LayerProperty<ValueRepresentation>,
     keyframes: KeyframeGroup<KeyframeValue>,
     value keyframeValueMapping: (KeyframeValue) throws -> ValueRepresentation,
@@ -39,7 +39,7 @@ extension CALayer {
   ///  - If the value can be applied directly to the CALayer using KVC,
   ///    then no `CAAnimation` will be created and the value will be applied directly.
   @nonobjc
-  private func defaultAnimation<KeyframeValue: AnyInterpolatable, ValueRepresentation>(
+  private func defaultAnimation<KeyframeValue, ValueRepresentation>(
     for property: LayerProperty<ValueRepresentation>,
     keyframes keyframeGroup: KeyframeGroup<KeyframeValue>,
     value keyframeValueMapping: (KeyframeValue) throws -> ValueRepresentation,
@@ -50,35 +50,26 @@ extension CALayer {
     guard !keyframes.isEmpty else { return nil }
 
     // Check if this set of keyframes uses After Effects expressions, which aren't supported.
-    //  - We only log this once per `CoreAnimationLayer` instance.
-    if keyframeGroup.unsupportedAfterEffectsExpression != nil, !context.loggingState.hasLoggedAfterEffectsExpressionsWarning {
-      context.loggingState.hasLoggedAfterEffectsExpressionsWarning = true
+    if let unsupportedAfterEffectsExpression = keyframeGroup.unsupportedAfterEffectsExpression {
       context.logger.info("""
         `\(property.caLayerKeypath)` animation for "\(context.currentKeypath.fullPath)" \
         includes an After Effects expression (https://helpx.adobe.com/after-effects/using/expression-language.html), \
         which is not supported by lottie-ios (expressions are only supported by lottie-web). \
         This animation may not play correctly.
+
+          \(unsupportedAfterEffectsExpression.replacingOccurrences(of: "\n", with: "\n  "))
+
         """)
     }
 
-    // If there is exactly one keyframe value that doesn't animate,
-    // we can improve performance by applying that value directly to the layer
-    // instead of creating a relatively expensive `CAKeyframeAnimation`.
+    // If there is exactly one keyframe value, we can improve performance
+    // by applying that value directly to the layer instead of creating
+    // a relatively expensive `CAKeyframeAnimation`.
     if keyframes.count == 1 {
       return singleKeyframeAnimation(
         for: property,
         keyframeValue: try keyframeValueMapping(keyframes[0].value),
         writeDirectlyToPropertyIfPossible: true)
-    }
-
-    /// If we're required to use the `complexTimeRemapping` from some parent `PreCompLayer`,
-    /// we have to manually interpolate the keyframes with the time remapping applied.
-    if context.mustUseComplexTimeRemapping {
-      return try defaultAnimation(
-        for: property,
-        keyframes: Keyframes.manuallyInterpolatedWithTimeRemapping(keyframeGroup, context: context),
-        value: keyframeValueMapping,
-        context: context.withoutTimeRemapping())
     }
 
     // Split the keyframes into segments with the same `CAAnimationCalculationMode` value
@@ -189,8 +180,8 @@ extension CALayer {
     //    all of which have a non-zero number of keyframes.
     let segmentAnimations: [CAKeyframeAnimation] = try animationSegments.indices.map { index in
       let animationSegment = animationSegments[index]
-      var segmentStartTime = try context.time(forFrame: animationSegment.first!.time)
-      var segmentEndTime = try context.time(forFrame: animationSegment.last!.time)
+      var segmentStartTime = context.time(for: animationSegment.first!.time)
+      var segmentEndTime = context.time(for: animationSegment.last!.time)
 
       // Every portion of the animation timeline has to be covered by a `CAKeyframeAnimation`,
       // so if this is the first or last segment then the start/end time should be exactly
@@ -200,13 +191,13 @@ extension CALayer {
 
       if isFirstSegment {
         segmentStartTime = min(
-          try context.time(forFrame: context.animation.startFrame),
+          context.time(for: context.animation.startFrame),
           segmentStartTime)
       }
 
       if isLastSegment {
         segmentEndTime = max(
-          try context.time(forFrame: context.animation.endFrame),
+          context.time(for: context.animation.endFrame),
           segmentEndTime)
       }
 
@@ -216,8 +207,8 @@ extension CALayer {
       // relative to 0 (`segmentStartTime`) and 1 (`segmentEndTime`). This is different
       // from the default behavior of the `keyframeAnimation` method, where times
       // are expressed relative to the entire animation duration.
-      let customKeyTimes = try animationSegment.map { keyframeModel -> NSNumber in
-        let keyframeTime = try context.time(forFrame: keyframeModel.time)
+      let customKeyTimes = animationSegment.map { keyframeModel -> NSNumber in
+        let keyframeTime = context.time(for: keyframeModel.time)
         let segmentProgressTime = ((keyframeTime - segmentStartTime) / segmentDuration)
         return segmentProgressTime as NSNumber
       }
@@ -251,8 +242,8 @@ extension CALayer {
   {
     // Convert the list of `Keyframe<T>` into
     // the representation used by `CAKeyframeAnimation`
-    var keyTimes = try customKeyTimes ?? keyframes.map { keyframeModel -> NSNumber in
-      NSNumber(value: Float(try context.progressTime(for: keyframeModel.time)))
+    var keyTimes = customKeyTimes ?? keyframes.map { keyframeModel -> NSNumber in
+      NSNumber(value: Float(context.progressTime(for: keyframeModel.time)))
     }
 
     var timingFunctions = timingFunctions(for: keyframes)

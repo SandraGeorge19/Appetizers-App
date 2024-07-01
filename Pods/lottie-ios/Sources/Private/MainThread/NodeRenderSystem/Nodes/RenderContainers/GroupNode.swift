@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/18/19.
 //
 
+import CoreGraphics
+import Foundation
 import QuartzCore
 
 // MARK: - GroupNodeProperties
@@ -14,7 +16,7 @@ final class GroupNodeProperties: NodePropertyMap, KeypathSearchable {
   // MARK: Lifecycle
 
   init(transform: ShapeTransform?) {
-    if let transform {
+    if let transform = transform {
       anchor = NodeProperty(provider: KeyframeInterpolator(keyframes: transform.anchor.keyframes))
       position = NodeProperty(provider: KeyframeInterpolator(keyframes: transform.position.keyframes))
       scale = NodeProperty(provider: KeyframeInterpolator(keyframes: transform.scale.keyframes))

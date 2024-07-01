@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/9/19.
 //
 
+import Foundation
+
 final class TextAnimator: Codable, DictionaryInitializable {
 
   // MARK: Lifecycle

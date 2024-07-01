@@ -5,6 +5,8 @@
 //  Created by Brandon Withrow on 1/8/19.
 //
 
+import Foundation
+
 // MARK: - FillRule
 
 enum FillRule: Int, Codable {

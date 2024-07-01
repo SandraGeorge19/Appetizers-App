@@ -5,6 +5,7 @@
 //  Created by Brandon Withrow on 1/15/19.
 //
 
+import Foundation
 import QuartzCore
 
 // MARK: - NodeOutput
