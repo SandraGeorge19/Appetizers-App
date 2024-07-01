@@ -1,0 +1,6 @@
+framework module Pods_Appetizers_App {
+  umbrella header "Pods-Appetizers App-umbrella.h"
+
+  export *
+  module * { export * }
+}
